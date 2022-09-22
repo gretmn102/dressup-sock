@@ -65,6 +65,8 @@
             const doc = parser.parseFromString(rawSvg, "image/svg+xml")
             const svg = doc.documentElement as unknown as SVGElement
 
+            svg.setAttribute("style", "width: 100%; height: 100%")
+
             sockFetchResponse = ["Resolved", ["Ok", svg]]
 
             layers = getLayers()
@@ -102,36 +104,49 @@
       <pre style="color: red">{sockFetchResponse[1][1]}</pre>
       <button on:click={fetchSock}>Try again</button>
     {:else}
-      <div bind:this={container} />
+      <div class="container">
+        <div class="container__character" bind:this={container} />
 
-      {#if layers}
-        <div>
-          {#each layers as layer, idx}
-            <button
-              on:click={_ => {
-                layerToggleVisibleHandle(idx)
-              }}
-            >
-              {layer.svgElement.id}
-            </button>
-          {/each}
-        </div>
-      {/if}
+        {#if layers}
+          <div class="container__buttons">
+            {#each layers as layer, idx}
+              <div>
+                <button
+                  on:click={_ => {
+                    layerToggleVisibleHandle(idx)
+                  }}
+                >
+                  {layer.svgElement.id}
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
     {/if}
   {/if}
 </main>
 
 <style>
   main {
-    text-align: center;
-    padding: 1em;
-    max-width: 240px;
-    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+
+    height: 100vh;
   }
 
-  @media (min-width: 640px) {
-    main {
-      max-width: none;
-    }
+  .container {
+    display: flex;
+
+    max-height: 100vh;
+  }
+
+  .container__character {
+    display: flex;
+    align-items: center;
+  }
+
+  .container__buttons {
+    overflow-y: auto;
   }
 </style>
