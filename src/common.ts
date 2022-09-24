@@ -6,3 +6,5 @@ export type Deferrer<T> =
   | ["Resolved", T]
 
 export type Result<Ok, Error> = ["Ok", Ok] | ["Error", Error]
+
+export type Option<T> = T | null
