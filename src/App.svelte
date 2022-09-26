@@ -5,6 +5,8 @@
   import * as LayerList from "./layerList"
   import type * as UniversalParser from "./universalParser"
 
+  import UploadSock from "./UploadSock.svelte"
+
   let sockFetchResponse: Deferrer<Result<SVGElement, Error>> = ["HasNotStartedYet"] // @hmr:keep
 
   let layers: UniversalParser.Result<LayerList.Layer[]> | undefined
@@ -34,29 +36,35 @@
 
   let container: HTMLDivElement | undefined
 
+  function loadSvg(rawSvg: string) {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(rawSvg, "image/svg+xml")
+    const svg = doc.documentElement as unknown as SVGElement
+
+    svg.setAttribute("style", "width: 100%; height: 100%")
+
+    sockFetchResponse = ["Resolved", ["Ok", svg]]
+
+    layers = getLayers()
+
+    // Wait to initialize the container
+    let timer = setInterval(() => {
+      if (container) {
+        container.replaceChildren(svg)
+
+        clearInterval(timer)
+      }
+    })
+  }
+
   const fetchSock = () => {
+    sockFetchResponse = ["InProgress"]
+
     fetch("./sock.svg")
       .then(res => {
         res.text()
           .then(rawSvg => {
-            const parser = new DOMParser()
-            const doc = parser.parseFromString(rawSvg, "image/svg+xml")
-            const svg = doc.documentElement as unknown as SVGElement
-
-            svg.setAttribute("style", "width: 100%; height: 100%")
-
-            sockFetchResponse = ["Resolved", ["Ok", svg]]
-
-            layers = getLayers()
-
-            // Wait to initialize the container
-            let timer = setInterval(() => {
-              if (container) {
-                container.replaceChildren(svg)
-
-                clearInterval(timer)
-              }
-            })
+            loadSvg(rawSvg)
           })
           .catch(err => {
             sockFetchResponse = ["Resolved", ["Error", err]]
@@ -73,6 +81,12 @@
 </script>
 
 <main>
+  <div class="upload_sock">
+    <UploadSock
+      startLoading={() => { sockFetchResponse = ["InProgress"] }}
+      cb={rawSvg => { loadSvg(rawSvg) }}
+    />
+  </div>
   {#if sockFetchResponse[0] === "HasNotStartedYet"}
     <button on:click={fetchSock}>Load</button>
   {:else if sockFetchResponse[0] === "InProgress"}
@@ -139,6 +153,10 @@
     display: flex;
 
     max-height: 100vh;
+  }
+
+  .upload_sock {
+    position: relative;
   }
 
   .container__character {
