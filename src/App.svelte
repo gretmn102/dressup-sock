@@ -2,54 +2,34 @@
 	import { onMount } from "svelte"
 
   import type { Deferrer, Result } from "./common"
-
-  type Layer = {
-    svgElement: SVGGElement
-  }
-
-  function layerIsHidden(layer: Layer) {
-    const visibility = layer.svgElement.getAttribute("visibility")
-    if (visibility && visibility === "hidden") {
-      return true
-    }
-
-    return false
-  }
-
-  function layerToggleVisible(layer: Layer) {
-    if (layerIsHidden(layer)) {
-      layer.svgElement.setAttribute("visibility", "")
-    } else {
-      layer.svgElement.setAttribute("visibility", "hidden")
-    }
-  }
+  import * as LayerList from "./layerList"
+  import type * as UniversalParser from "./universalParser"
 
   let sockFetchResponse: Deferrer<Result<SVGElement, Error>> = ["HasNotStartedYet"] // @hmr:keep
 
-  let layers: Layer[] | undefined
+  let layers: UniversalParser.Result<LayerList.Layer[]> | undefined
 
-  function getLayers(): Layer [] | undefined {
+  function getLayers(): UniversalParser.Result<LayerList.Layer[]> | undefined {
     if (sockFetchResponse[0] === "Resolved" && sockFetchResponse[1][0] === "Ok") {
       const svg = sockFetchResponse[1][1]
 
-      let layers: Layer[] = Array()
+      const layers: SVGGElement[] = Array()
       for (const g of svg.getElementsByTagName("g")) {
         if (g.hasAttribute("id")) {
-          layers.push({
-            svgElement: g
-          })
+          layers.push(g)
         }
       }
 
-      return layers
+      return LayerList.getLayers(layers)
     }
   }
 
   function layerToggleVisibleHandle(idx: number) {
+    // TODO
     if (layers) {
-      const layer = layers[idx]
-      if (layer) {
-        layerToggleVisible(layer)
+      if (layers[0] === "Success") {
+        const layer = layers[1][1][idx]
+        LayerList.Layer.toggleVisible(layer)
       }
     }
   }
@@ -74,7 +54,7 @@
             // Wait to initialize the container
             let timer = setInterval(() => {
               if (container) {
-                container.appendChild(svg)
+                container.replaceChildren(svg)
 
                 clearInterval(timer)
               }
@@ -109,17 +89,39 @@
 
         {#if layers}
           <div class="container__buttons">
-            {#each layers as layer, idx}
-              <div>
-                <button
-                  on:click={_ => {
-                    layerToggleVisibleHandle(idx)
-                  }}
-                >
-                  {layer.svgElement.id}
-                </button>
-              </div>
-            {/each}
+            {#if layers[0] === "Success"}
+              {#each layers[1][1] as layer, idx}
+                {#if layer[0] === "Category"}
+                  <div>
+                    <div>{layer[1].content.name}</div>
+                    {#each layer[1].elements as layer2, idx}
+                      <div>
+                        <button
+                          on:click={_ => {
+                            layerToggleVisibleHandle(idx)
+                          }}
+                        >
+                          {layer2.content.name}
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {:else if layer[0] === "Element"}
+                  <div>
+                    <button
+                      on:click={_ => {
+                        layerToggleVisibleHandle(idx)
+                      }}
+                    >
+                      {layer[1].content.name}
+                    </button>
+                  </div>
+                {/if}
+              {/each}
+            {:else}
+              <pre style="color: red">{JSON.stringify(layers, undefined, 2)}</pre>
+              <button on:click={fetchSock}>Try again</button>
+            {/if}
           </div>
         {/if}
       </div>
