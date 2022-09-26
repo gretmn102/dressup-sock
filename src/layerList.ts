@@ -5,23 +5,8 @@ export type LayerContent = {
   svg: SVGGElement
   name: string
 }
-
-export type Element = {
-  content: LayerContent
-}
-
-export type Category = {
-  content: LayerContent
-  elements: Element []
-}
-
-export type Layer =
-  | ["Element", Element]
-  | ["Category", Category]
-
-export module Layer {
-  export function isHidden(layer: Layer) {
-    const layerContent = layer[1].content
+export module LayerContent {
+  export function isHidden(layerContent: LayerContent) {
     const visibility = layerContent.svg.getAttribute("visibility")
     if (visibility && visibility === "hidden") {
       return true
@@ -30,13 +15,131 @@ export module Layer {
     return false
   }
 
-  export function toggleVisible(layer: Layer) {
-    const layerContent = layer[1].content
-    if (isHidden(layer)) {
+  export function setHidden(layerContent: LayerContent, isHidden: boolean) {
+    if (isHidden) {
       layerContent.svg.setAttribute("visibility", "")
     } else {
       layerContent.svg.setAttribute("visibility", "hidden")
     }
+  }
+
+  export function toggleVisible(layerContent: LayerContent) {
+    setHidden(layerContent, isHidden(layerContent))
+  }
+}
+
+export type Element = {
+  content: LayerContent
+}
+export module Element {
+  export function isHidden(el: Element) {
+    return LayerContent.isHidden(el.content)
+  }
+
+  export function toggleVisible(el: Element) {
+    return LayerContent.toggleVisible(el.content)
+  }
+
+  export function setHidden(el: Element, isHidden: boolean) {
+    return LayerContent.setHidden(el.content, isHidden)
+  }
+}
+
+export type Category = {
+  content: LayerContent
+  isInclude: boolean
+  elements: Element []
+}
+export module Category {
+  export function isHidden(category: Category) {
+    return LayerContent.isHidden(category.content)
+  }
+
+  export function isHiddenElement(category: Category, idx: number) {
+    const el = category.elements[idx]
+    if (el) {
+      return LayerContent.isHidden(el.content)
+    }
+  }
+
+  export function toggleVisible(category: Category) {
+    return LayerContent.toggleVisible(category.content)
+  }
+
+  export function toggleVisibleElement(category: Category, idx: number) {
+    const el = category.elements[idx]
+    if (el) {
+      return LayerContent.toggleVisible(el.content)
+    }
+  }
+}
+
+export type Layer =
+  | ["Element", Element]
+  | ["Category", Category]
+
+export type LayerList = Layer[]
+export module LayerList {
+  export type Pos =
+    | ["Element", number]
+    /** `[categoryIdx, elementIdx]` */
+    | ["Category", [number, number]]
+  export module Pos {
+    export function mkElement(index: number): Pos {
+      return ["Element", index]
+    }
+
+    export function mkCategory(categoryIndex: number, elementIndex: number): Pos {
+      return ["Category", [categoryIndex, elementIndex]]
+    }
+
+    export function map<T>(
+      pos: Pos,
+      mappingCategory: (categoryIdx: number, elementIdx: number) => T,
+      mappingElement: (idx: number) => T,
+    ): T {
+      switch (pos[0]) {
+        case "Category": {
+          const [categoryIdx, elementIdx] = pos[1]
+          return mappingCategory(categoryIdx, elementIdx)
+        }
+
+        case "Element": {
+          const idx = pos[1]
+          return mappingElement(idx)
+        }
+      }
+    }
+  }
+
+  export function toggleVisible(layers: LayerList, pos: Pos) {
+    Pos.map(
+      pos,
+      (categoryIdx, elementIdx) => {
+        const layer = layers[categoryIdx]
+        if (layer && layer[0] === "Category") {
+          const props = layer[1]
+          if (props.isInclude) {
+            for (let index = 0; index < props.elements.length; index++) {
+              const element = props.elements[index]
+
+              Element.setHidden(element, index === elementIdx)
+            }
+          } else {
+            const el = props.elements[elementIdx]
+            if (el) {
+              Element.toggleVisible(el)
+            }
+          }
+        }
+      },
+      idx => {
+        const layer = layers[idx]
+        if (layer && layer[0] === "Element") {
+          Element.toggleVisible(layer[1])
+        }
+      }
+    )
   }
 }
 
@@ -71,13 +174,14 @@ export const getLayers = (() => {
             svg,
             name: layerProps.name
           },
+          isInclude: layerProps.type[0] === "Category" ? layerProps.type[1].isInclude : false,
           elements
         }
         return category
       })
     )
 
-  const players: Parser<Layer[]> =
+  const players: Parser<LayerList> =
     UniversalParser.many(
       UniversalParser.alt(
         UniversalParser.map(
@@ -91,7 +195,7 @@ export const getLayers = (() => {
       )
     )
 
-  const playersEof: Parser<Layer[]> =
+  const playersEof: Parser<LayerList> =
     UniversalParser.eof(players)
 
   return (svgs: SVGGElement[]) => {

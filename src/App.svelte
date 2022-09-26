@@ -20,16 +20,14 @@
         }
       }
 
-      return LayerList.getLayers(layers)
+      return LayerList.getLayers(layers.reverse())
     }
   }
 
-  function layerToggleVisibleHandle(idx: number) {
-    // TODO
+  function layerToggleVisibleHandle(pos: LayerList.LayerList.Pos) {
     if (layers) {
       if (layers[0] === "Success") {
-        const layer = layers[1][1][idx]
-        LayerList.Layer.toggleVisible(layer)
+        LayerList.LayerList.toggleVisible(layers[1][1], pos)
       }
     }
   }
@@ -90,18 +88,18 @@
         {#if layers}
           <div class="container__buttons">
             {#if layers[0] === "Success"}
-              {#each layers[1][1] as layer, idx}
+              {#each layers[1][1] as layer, firstIndex}
                 {#if layer[0] === "Category"}
                   <div>
                     <div>{layer[1].content.name}</div>
-                    {#each layer[1].elements as layer2, idx}
+                    {#each layer[1].elements as element, elementIndex}
                       <div>
                         <button
                           on:click={_ => {
-                            layerToggleVisibleHandle(idx)
+                            layerToggleVisibleHandle(LayerList.LayerList.Pos.mkCategory(firstIndex, elementIndex))
                           }}
                         >
-                          {layer2.content.name}
+                          {element.content.name}
                         </button>
                       </div>
                     {/each}
@@ -110,7 +108,7 @@
                   <div>
                     <button
                       on:click={_ => {
-                        layerToggleVisibleHandle(idx)
+                        layerToggleVisibleHandle(LayerList.LayerList.Pos.mkElement(firstIndex))
                       }}
                     >
                       {layer[1].content.name}
