@@ -90,13 +90,23 @@ export module Category {
     const el = category.elements[elementIdx]
     if (el) {
       if (category.isInclude) {
-        return update(category, {
-          elements: {
-            $set: category.elements.map((element, index) => {
-              return Element.setHidden(element, index !== elementIdx)
-            })
-          }
-        })
+        if (Element.isHidden(el)) {
+          return update(category, {
+            elements: {
+              $set: category.elements.map((element, index) => {
+                return Element.setHidden(element, index !== elementIdx)
+              })
+            }
+          })
+        } else {
+          return update(category, {
+            elements: {
+              [elementIdx]: {
+                $set: Element.toggleVisible(el)
+              }
+            }
+          })
+        }
       } else {
         return update(category, {
           elements: {
