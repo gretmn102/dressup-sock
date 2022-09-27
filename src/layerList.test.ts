@@ -5,11 +5,13 @@ import * as LayerList from "./layerList"
 
 export type LayerContent = {
   name: string
+  isHidden: boolean
 }
 export module LayerContent {
   export function ofLayer(x: LayerList.LayerContent): LayerContent {
     return {
-      name: x.name
+      name: x.name,
+      isHidden: x.isHidden
     }
   }
 }
@@ -28,12 +30,14 @@ export module Element {
 export type Category = {
   content: LayerContent
   elements: Element []
+  isInclude: boolean
 }
 export module Category {
   export function ofLayer(x: LayerList.Category): Category {
     return {
       content: LayerContent.ofLayer(x.content),
-      elements: x.elements.map(x => Element.ofLayer(x))
+      elements: x.elements.map(x => Element.ofLayer(x)),
+      isInclude: x.isInclude,
     }
   }
 }
@@ -94,6 +98,8 @@ describe("LayerList.getLayers", () => {
         " </g>",
         " <g id=\"носок_x0020_1\" visibility=\"hidden\">",
         " </g>",
+        " <g id=\"__x003e__x002b__x0020_категория_x0020_с_x0020_включениями\">",
+        " </g>",
         "</svg>",
       ].join("\n")
 
@@ -104,7 +110,8 @@ describe("LayerList.getLayers", () => {
         "Element",
         {
           "content": {
-            "name": "мохровая штука"
+            "name": "мохровая штука",
+            "isHidden": false
           }
         }
       ],
@@ -112,22 +119,37 @@ describe("LayerList.getLayers", () => {
         "Category",
         {
           "content": {
-            "name": "туловище"
+            "name": "туловище",
+            "isHidden": false,
           },
           "elements": [
             {
               "content": {
-                "name": "носок раскрас"
+                "name": "носок раскрас",
+                "isHidden": false
               }
             },
             {
               "content": {
-                "name": "носок 1"
+                "name": "носок 1",
+                "isHidden": true
               }
             }
-          ]
+          ],
+          "isInclude": false
         }
-      ]
+      ],
+      [
+        "Category",
+        {
+          "content": {
+            "isHidden": false,
+            "name": "категория с включениями",
+          },
+          "elements": [],
+          "isInclude": true,
+        },
+      ],
     ]
 
     const act = (() => {

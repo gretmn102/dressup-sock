@@ -3,7 +3,7 @@
 
   import type { Deferrer, Result } from "./common"
   import * as LayerList from "./layerList"
-  import type * as UniversalParser from "./universalParser"
+  import * as UniversalParser from "./universalParser"
 
   import UploadSock from "./UploadSock.svelte"
 
@@ -29,7 +29,11 @@
   function layerToggleVisibleHandle(pos: LayerList.LayerList.Pos) {
     if (layers) {
       if (layers[0] === "Success") {
-        LayerList.LayerList.toggleVisible(layers[1][1], pos)
+        const [nextIndex, layerList] = layers[1]
+        const res = LayerList.LayerList.toggleVisible(layerList, pos)
+        if (res) {
+          layers = UniversalParser.Result.mkSuccess(nextIndex, res)
+        }
       }
     }
   }
@@ -112,6 +116,7 @@
                           on:click={_ => {
                             layerToggleVisibleHandle(LayerList.LayerList.Pos.mkCategory(firstIndex, elementIndex))
                           }}
+                          style={LayerList.LayerContent.isHidden(element.content) ? "" : "color: red;"}
                         >
                           {element.content.name}
                         </button>
@@ -124,6 +129,7 @@
                       on:click={_ => {
                         layerToggleVisibleHandle(LayerList.LayerList.Pos.mkElement(firstIndex))
                       }}
+                      style={LayerList.LayerContent.isHidden(layer[1].content) ? "" : "color: red;"}
                     >
                       {layer[1].content.name}
                     </button>
