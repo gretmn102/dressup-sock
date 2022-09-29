@@ -2,7 +2,7 @@ import {describe, expect, test} from '@jest/globals'
 import { JSDOM } from "jsdom"
 
 import type * as P from '../utils/universalParser'
-import type * as LayerList from "../layerList"
+import type * as Document from "../document"
 import * as SvgImporter from "."
 
 export type LayerContent = {
@@ -10,7 +10,7 @@ export type LayerContent = {
   isHidden: boolean
 }
 export module LayerContent {
-  export function ofLayer(x: LayerList.LayerContent): LayerContent {
+  export function ofLayer(x: Document.LayerContent): LayerContent {
     return {
       name: x.name,
       isHidden: x.isHidden
@@ -22,7 +22,7 @@ export type Element = {
   content: LayerContent
 }
 export module Element {
-  export function ofLayer(x: LayerList.Element): Element {
+  export function ofLayer(x: Document.Element): Element {
     return {
       content: LayerContent.ofLayer(x.content)
     }
@@ -35,7 +35,7 @@ export type Category = {
   isInclude: boolean
 }
 export module Category {
-  export function ofLayer(x: LayerList.Category): Category {
+  export function ofLayer(x: Document.Category): Category {
     return {
       content: LayerContent.ofLayer(x.content),
       elements: x.elements.map(x => Element.ofLayer(x)),
@@ -48,7 +48,7 @@ export type Layer =
   | ["Element", Element]
   | ["Category", Category]
 export module Layer {
-  export function ofLayer(x: LayerList.Layer): Layer {
+  export function ofLayer(x: Document.Layer): Layer {
     switch (x[0]) {
       case "Element":
         return ["Element", Element.ofLayer(x[1])]
@@ -58,14 +58,14 @@ export module Layer {
   }
 }
 
-function getSvgsFromString(rawSvg: string): P.Result<LayerList.LayerList> {
+function getSvgsFromString(rawSvg: string): P.Result<Document.LayerList> {
   const jsdom = new JSDOM(rawSvg, { contentType: "image/svg+xml" })
 
   return SvgImporter.importSvg(jsdom.window.document)
 
 }
 
-async function getSvgsFromFile(path: string): Promise<P.Result<LayerList.LayerList>> {
+async function getSvgsFromFile(path: string): Promise<P.Result<Document.LayerList>> {
   const jsdom = await JSDOM.fromFile(path, { contentType: "image/svg+xml" })
 
   return SvgImporter.importSvg(jsdom.window.document)

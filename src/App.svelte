@@ -2,7 +2,7 @@
 	import { onMount } from "svelte"
 
   import type { Deferrer, Result } from "./common"
-  import * as LayerList from "./layerList"
+  import * as Document from "./document"
   import * as UniversalParser from "./utils/universalParser"
   import * as SvgImporter from "./SvgImporter"
 
@@ -10,20 +10,20 @@
 
   let sockFetchResponse: Deferrer<Result<SVGElement, Error>> = ["HasNotStartedYet"] // @hmr:keep
 
-  let layers: UniversalParser.Result<LayerList.Layer[]> | undefined
+  let layers: UniversalParser.Result<Document.Layer[]> | undefined
 
-  function getLayers(): UniversalParser.Result<LayerList.Layer[]> | undefined {
+  function getLayers(): UniversalParser.Result<Document.Layer[]> | undefined {
     if (sockFetchResponse[0] === "Resolved" && sockFetchResponse[1][0] === "Ok") {
       const svg = sockFetchResponse[1][1]
       return SvgImporter.importSvg(svg as unknown as Document)
     }
   }
 
-  function layerToggleVisibleHandle(pos: LayerList.LayerList.Pos) {
+  function layerToggleVisibleHandle(pos: Document.LayerList.Pos) {
     if (layers) {
       if (layers[0] === "Success") {
         const [nextIndex, layerList] = layers[1]
-        const res = LayerList.LayerList.toggleVisible(layerList, pos)
+        const res = Document.LayerList.toggleVisible(layerList, pos)
         if (res) {
           layers = UniversalParser.Result.mkSuccess(nextIndex, res)
         }
@@ -107,9 +107,9 @@
                       <div>
                         <button
                           on:click={_ => {
-                            layerToggleVisibleHandle(LayerList.LayerList.Pos.mkCategory(firstIndex, elementIndex))
+                            layerToggleVisibleHandle(Document.LayerList.Pos.mkCategory(firstIndex, elementIndex))
                           }}
-                          style={LayerList.LayerContent.isHidden(element.content) ? "" : "color: red;"}
+                          style={Document.LayerContent.isHidden(element.content) ? "" : "color: red;"}
                         >
                           {element.content.name}
                         </button>
@@ -120,9 +120,9 @@
                   <div>
                     <button
                       on:click={_ => {
-                        layerToggleVisibleHandle(LayerList.LayerList.Pos.mkElement(firstIndex))
+                        layerToggleVisibleHandle(Document.LayerList.Pos.mkElement(firstIndex))
                       }}
-                      style={LayerList.LayerContent.isHidden(layer[1].content) ? "" : "color: red;"}
+                      style={Document.LayerContent.isHidden(layer[1].content) ? "" : "color: red;"}
                     >
                       {layer[1].content.name}
                     </button>

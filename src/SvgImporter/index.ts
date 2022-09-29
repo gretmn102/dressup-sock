@@ -1,6 +1,6 @@
 import * as IdSerializator from "./idSerializator"
 import * as UniversalParser from "../utils/universalParser"
-import { Element, Category, LayerContent, LayerList, Layer } from "../layerList"
+import { Element, Category, LayerContent, LayerList, Layer } from "../document"
 
 type InputElement = [SVGGElement, IdSerializator.Layer]
 type Parser<T> = UniversalParser.Parser<InputElement, T>
