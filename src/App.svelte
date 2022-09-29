@@ -4,6 +4,7 @@
   import type { Deferrer, Result } from "./common"
   import * as LayerList from "./layerList"
   import * as UniversalParser from "./utils/universalParser"
+  import * as SvgImporter from "./SvgImporter"
 
   import UploadSock from "./UploadSock.svelte"
 
@@ -22,7 +23,7 @@
         }
       }
 
-      return LayerList.getLayers(layers.reverse())
+      return SvgImporter.getLayers(layers.reverse())
     }
   }
 
