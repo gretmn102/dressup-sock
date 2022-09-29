@@ -3,7 +3,7 @@
 
   import type { Deferrer, Result } from "./common"
   import * as LayerList from "./layerList"
-  import * as UniversalParser from "./universalParser"
+  import * as UniversalParser from "./utils/universalParser"
 
   import UploadSock from "./UploadSock.svelte"
 

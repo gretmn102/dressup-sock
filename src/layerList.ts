@@ -1,7 +1,7 @@
 import update from "immutability-helper"
 
 import * as IdSerializator from "./idSerializator"
-import * as UniversalParser from "./universalParser"
+import * as UniversalParser from "./utils/universalParser"
 
 export type LayerContent = {
   svg: SVGGElement
