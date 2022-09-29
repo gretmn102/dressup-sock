@@ -1,6 +1,6 @@
 import {describe, expect, test} from '@jest/globals'
 
-import { ArrayExt } from './utils'
+import { ArrayExt } from './arrayExt'
 
 describe("ArrayExt.takeWhile", () => {
   test("[], 0, 0, x => x", () => {
