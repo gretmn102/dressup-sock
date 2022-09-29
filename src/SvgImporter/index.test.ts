@@ -1,7 +1,9 @@
 import {describe, expect, test} from '@jest/globals'
 import { JSDOM } from "jsdom"
 
-import * as LayerList from "./layerList"
+import type * as P from '../utils/universalParser'
+import type * as LayerList from "../layerList"
+import * as SvgImporter from "."
 
 export type LayerContent = {
   name: string
@@ -56,35 +58,21 @@ export module Layer {
   }
 }
 
-function getSvgsFromJSDOM(jsdom: JSDOM): SVGGElement[]  {
-  const svg = jsdom.window.document
-
-  let rawLayers: SVGGElement[] = Array()
-  for (const g of svg.getElementsByTagName("g")) {
-    if (g.hasAttribute("id")) {
-      rawLayers.push(g)
-    }
-  }
-
-  return rawLayers
-}
-
-function getSvgsFromString(rawSvg: string): SVGGElement[] {
+function getSvgsFromString(rawSvg: string): P.Result<LayerList.LayerList> {
   const jsdom = new JSDOM(rawSvg, { contentType: "image/svg+xml" })
 
-  return getSvgsFromJSDOM(jsdom)
+  return SvgImporter.importSvg(jsdom.window.document)
 
 }
 
-async function getSvgsFromFile(path: string): Promise<SVGGElement[]> {
+async function getSvgsFromFile(path: string): Promise<P.Result<LayerList.LayerList>> {
   const jsdom = await JSDOM.fromFile(path, { contentType: "image/svg+xml" })
 
-  return getSvgsFromJSDOM(jsdom)
+  return SvgImporter.importSvg(jsdom.window.document)
 }
 
 describe("LayerList.getLayers", () => {
   test("sample", async () => {
-    // const rawLayers = await getSvgsFromFile("./public/sample.svg")
     const sample =
       [
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
@@ -100,18 +88,18 @@ describe("LayerList.getLayers", () => {
         " </g>",
         " <g id=\"__x003e__x002b__x0020_категория_x0020_с_x0020_включениями\">",
         " </g>",
+        " <g id=\"эелемент_x0020_вне_x0020_категории\">",
+        " </g>",
         "</svg>",
       ].join("\n")
-
-    const rawLayers = getSvgsFromString(sample)
 
     const exp: Layer[] = [
       [
         "Element",
         {
           "content": {
-            "name": "мохровая штука",
-            "isHidden": false
+            "isHidden": false,
+            "name": "эелемент вне категории"
           }
         }
       ],
@@ -119,24 +107,24 @@ describe("LayerList.getLayers", () => {
         "Category",
         {
           "content": {
-            "name": "туловище",
             "isHidden": false,
+            "name": "категория с включениями"
           },
+          "isInclude": true,
           "elements": [
             {
               "content": {
-                "name": "носок раскрас",
-                "isHidden": false
+                "isHidden": true,
+                "name": "носок 1"
               }
             },
             {
               "content": {
-                "name": "носок 1",
-                "isHidden": true
+                "isHidden": false,
+                "name": "носок раскрас"
               }
             }
-          ],
-          "isInclude": false
+          ]
         }
       ],
       [
@@ -144,16 +132,23 @@ describe("LayerList.getLayers", () => {
         {
           "content": {
             "isHidden": false,
-            "name": "категория с включениями",
+            "name": "туловище"
           },
-          "elements": [],
-          "isInclude": true,
-        },
-      ],
+          "isInclude": false,
+          "elements": [
+            {
+              "content": {
+                "isHidden": false,
+                "name": "мохровая штука"
+              }
+            }
+          ]
+        }
+      ]
     ]
 
     const act = (() => {
-      const res = LayerList.getLayers(rawLayers)
+      const res = getSvgsFromString(sample)
       if (res[0] === "Success") {
         const [_, xs] = res[1]
         const ys = xs.map((x) => Layer.ofLayer(x))

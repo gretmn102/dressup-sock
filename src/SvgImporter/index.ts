@@ -66,3 +66,14 @@ export const getLayers = (() => {
     return UniversalParser.run(playersEof)(rawLayers)
   }
 })()
+
+export function importSvg(svg: Document) {
+  const layers: SVGGElement[] = Array()
+  for (const g of svg.getElementsByTagName("g")) {
+    if (g.hasAttribute("id")) {
+      layers.push(g)
+    }
+  }
+
+  return getLayers(layers.reverse())
+}

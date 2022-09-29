@@ -1,6 +1,6 @@
 import * as P from "parsimmon"
 
-import type { Option } from "./common"
+import type { Option } from "../common"
 
 module Utils {
   export function opt<T>(p: P.Parser<T>): P.Parser<Option<T>> {

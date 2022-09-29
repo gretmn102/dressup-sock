@@ -15,15 +15,7 @@
   function getLayers(): UniversalParser.Result<LayerList.Layer[]> | undefined {
     if (sockFetchResponse[0] === "Resolved" && sockFetchResponse[1][0] === "Ok") {
       const svg = sockFetchResponse[1][1]
-
-      const layers: SVGGElement[] = Array()
-      for (const g of svg.getElementsByTagName("g")) {
-        if (g.hasAttribute("id")) {
-          layers.push(g)
-        }
-      }
-
-      return SvgImporter.getLayers(layers.reverse())
+      return SvgImporter.importSvg(svg as unknown as Document)
     }
   }
 
