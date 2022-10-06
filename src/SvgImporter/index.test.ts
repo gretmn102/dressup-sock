@@ -1,71 +1,51 @@
 import {describe, expect, test} from '@jest/globals'
 import { JSDOM } from "jsdom"
 
-import type * as P from '../utils/universalParser'
 import type * as Document from "../document"
 import * as SvgImporter from "."
+import { Result } from '../common'
 
-export type LayerContent = {
+export type Layer = {
+  id: string
   name: string
   isHidden: boolean
 }
-export module LayerContent {
-  export function ofLayer(x: Document.LayerContent): LayerContent {
-    return {
-      name: x.name,
-      isHidden: x.isHidden
-    }
-  }
-}
-
-export type Element = {
-  content: LayerContent
-}
-export module Element {
-  export function ofLayer(x: Document.Element): Element {
-    return {
-      content: LayerContent.ofLayer(x.content)
-    }
-  }
-}
-
-export type Category = {
-  content: LayerContent
-  elements: Element []
-  isInclude: boolean
-}
-export module Category {
-  export function ofLayer(x: Document.Category): Category {
-    return {
-      content: LayerContent.ofLayer(x.content),
-      elements: x.elements.map(x => Element.ofLayer(x)),
-      isInclude: x.isInclude,
-    }
-  }
-}
-
-export type Layer =
-  | ["Element", Element]
-  | ["Category", Category]
 export module Layer {
   export function ofLayer(x: Document.Layer): Layer {
-    switch (x[0]) {
-      case "Element":
-        return ["Element", Element.ofLayer(x[1])]
-      case "Category":
-        return ["Category", Category.ofLayer(x[1])]
+    return {
+      id: x.id,
+      name: x.name,
+      isHidden: x.isHidden,
     }
   }
 }
 
-function getSvgsFromString(rawSvg: string): P.Result<Document.LayerList> {
+export type Root = {
+  layers: Map<Document.LayerId, Layer>
+  layersPosition: Document.LayersPosition
+  layersCatalog: Document.LayersCatalog
+}
+export module Root {
+  export function ofLayer(x: Document.Root): Root {
+    const layers = new Map<Document.LayerId, Layer>()
+    for (const [id, layer] of x.layers) {
+      layers.set(id, Layer.ofLayer(layer))
+    }
+    return {
+      layers: layers,
+      layersPosition: x.layersPosition,
+      layersCatalog: x.layersCatalog,
+    }
+  }
+}
+
+function getSvgsFromString(rawSvg: string) {
   const jsdom = new JSDOM(rawSvg, { contentType: "image/svg+xml" })
 
   return SvgImporter.importSvg(jsdom.window.document)
-
 }
 
-async function getSvgsFromFile(path: string): Promise<P.Result<Document.LayerList>> {
+async function getSvgsFromFile(path: string) {
   const jsdom = await JSDOM.fromFile(path, { contentType: "image/svg+xml" })
 
   return SvgImporter.importSvg(jsdom.window.document)
@@ -93,71 +73,108 @@ describe("LayerList.getLayers", () => {
         "</svg>",
       ].join("\n")
 
-    const exp: Layer[] = [
-      [
-        "Element",
-        {
-          "content": {
+    const exp: Root = {
+      "layers": new Map([
+        [
+          "эелемент_x0020_вне_x0020_категории",
+          {
+            "id": "эелемент_x0020_вне_x0020_категории",
+            "name": "эелемент вне категории",
             "isHidden": false,
-            "name": "эелемент вне категории"
           }
-        }
-      ],
-      [
-        "Category",
-        {
-          "content": {
+        ],
+        [
+          "__x003e__x002b__x0020_категория_x0020_с_x0020_включениями",
+          {
+            "id": "__x003e__x002b__x0020_категория_x0020_с_x0020_включениями",
+            "name": "категория с включениями",
             "isHidden": false,
-            "name": "категория с включениями"
-          },
-          "isInclude": true,
-          "elements": [
-            {
-              "content": {
-                "isHidden": true,
-                "name": "носок 1"
-              }
-            },
-            {
-              "content": {
-                "isHidden": false,
-                "name": "носок раскрас"
-              }
-            }
-          ]
-        }
-      ],
-      [
-        "Category",
-        {
-          "content": {
+          }
+        ],
+        [
+          "носок_x0020_1",
+          {
+            "id": "носок_x0020_1",
+            "name": "носок 1",
+            "isHidden": true,
+          }
+        ],
+        [
+          "носок_x0020_раскрас",
+          {
+            "id": "носок_x0020_раскрас",
+            "name": "носок раскрас",
             "isHidden": false,
-            "name": "туловище"
-          },
-          "isInclude": false,
-          "elements": [
-            {
-              "content": {
-                "isHidden": false,
-                "name": "мохровая штука"
+          }
+        ],
+        [
+          "__x003e__x0020_туловище",
+          {
+            "id": "__x003e__x0020_туловище",
+            "name": "туловище",
+            "isHidden": false,
+          }
+        ],
+        [
+          "мохровая_x0020_штука",
+          {
+            "id": "мохровая_x0020_штука",
+            "name": "мохровая штука",
+            "isHidden": false,
+          }
+        ]
+      ]),
+      "layersPosition": [
+        "эелемент_x0020_вне_x0020_категории",
+        "__x003e__x002b__x0020_категория_x0020_с_x0020_включениями",
+        "носок_x0020_1",
+        "носок_x0020_раскрас",
+        "__x003e__x0020_туловище",
+        "мохровая_x0020_штука"
+      ],
+      "layersCatalog": [
+        [
+          "Element",
+          {
+            "id": "эелемент_x0020_вне_x0020_категории"
+          }
+        ],
+        [
+          "Category",
+          {
+            "id": "__x003e__x002b__x0020_категория_x0020_с_x0020_включениями",
+            "isInclude": true,
+            "elements": [
+              {
+                "id": "носок_x0020_1"
+              },
+              {
+                "id": "носок_x0020_раскрас"
               }
-            }
-          ]
-        }
+            ]
+          }
+        ],
+        [
+          "Category",
+          {
+            "id": "__x003e__x0020_туловище",
+            "isInclude": false,
+            "elements": [
+              {
+                "id": "мохровая_x0020_штука"
+              }
+            ]
+          }
+        ]
       ]
-    ]
+    }
 
-    const act = (() => {
-      const res = getSvgsFromString(sample)
-      if (res[0] === "Success") {
-        const [_, xs] = res[1]
-        const ys = xs.map((x) => Layer.ofLayer(x))
-        return ys
-      }
+    const act = Result.reduce(
+      getSvgsFromString(sample),
+      root => Result.mkOk(Root.ofLayer(root)),
+      Result.mkError
+    )
 
-      return res
-    })()
-
-    expect(act).toStrictEqual(exp)
+    expect(act).toStrictEqual(Result.mkOk(exp))
   })
 })

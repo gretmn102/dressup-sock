@@ -1,11 +1,15 @@
 import update from "immutability-helper"
+import { ArrayExt } from "./utils/arrayExt"
 
-export type LayerContent = {
-  svg: SVGGElement
-  isHidden: boolean
+export type LayerId = string
+
+export type Layer = {
+  id: LayerId
   name: string
+  isHidden: boolean
+  svg: SVGGElement
 }
-export module LayerContent {
+export module Layer {
   export function isHiddenBySvg(svg: SVGGElement) {
     const visibility = svg.getAttribute("visibility")
     if (visibility && visibility === "hidden") {
@@ -15,123 +19,162 @@ export module LayerContent {
     return false
   }
 
-  export function isHidden(layerContent: LayerContent) {
-    return layerContent.isHidden
+  export function isHidden(layer: Layer): boolean {
+    return layer.isHidden
   }
 
-  export function setHidden(layerContent: LayerContent, isHidden: boolean): LayerContent {
+  export function setVisible(layer: Layer, isHidden: boolean): Layer {
+    const svg = layer.svg
     if (isHidden) {
-      layerContent.svg.setAttribute("visibility", "hidden")
+      svg.setAttribute("visibility", "hidden")
     } else {
-      layerContent.svg.setAttribute("visibility", "")
+      svg.setAttribute("visibility", "")
     }
-    return update(layerContent, { isHidden: { $set: isHidden } })
+    return update(layer, { isHidden: { $set: isHidden } })
   }
 
-  export function toggleVisible(layerContent: LayerContent): LayerContent {
-    return setHidden(layerContent, !layerContent.isHidden)
+  export function toggleVisible(layerContent: Layer): Layer {
+    return setVisible(layerContent, !layerContent.isHidden)
   }
 }
 
-export type Element = {
-  content: LayerContent
+export type LayerContainer = {
+  id: LayerId
 }
-export module Element {
-  export function isHidden(el: Element) {
-    return LayerContent.isHidden(el.content)
+export module LayerContainer {
+  export function isHidden(layerContainer: LayerContainer, root: Root) {
+    const layer = root.layers.get(layerContainer.id)
+    if (layer) {
+      return Layer.isHidden(layer)
+    }
   }
 
-  export function toggleVisible(el: Element): Element {
-    return update(el, {
-      content: {
-        $set: LayerContent.toggleVisible(el.content)
-      }
-    })
+  export function setVisible(
+    layerContainer: LayerContainer,
+    root: Root,
+    isHidden: boolean,
+  ): Root | undefined {
+    const layer = root.layers.get(layerContainer.id)
+    if (layer) {
+      return Root.updateLayers(
+        root,
+        layers => update(layers, {
+          [layerContainer.id]: { $set: Layer.setVisible(layer, isHidden) }
+        })
+      )
+    }
   }
 
-  export function setHidden(el: Element, isHidden: boolean): Element {
-    return update(el, {
-      content: {
-        $set: LayerContent.setHidden(el.content, isHidden)
-      }
-    })
+  export function mapVisible(
+    layerContainer: LayerContainer,
+    root: Root,
+    mapping: (isHidden: boolean) => boolean,
+  ): Root | undefined {
+    const layer = root.layers.get(layerContainer.id)
+    if (layer) {
+      return Root.updateLayers(
+        root,
+        layers => update(layers, {
+          [layerContainer.id]: { $set: Layer.setVisible(layer, mapping(Layer.isHidden(layer))) }
+        })
+      )
+    }
+  }
+
+  export function toggleVisible(
+    layerContainer: LayerContainer,
+    root: Root
+  ): Root | undefined {
+    return mapVisible(layerContainer, root, isHidden => !isHidden)
+  }
+
+  export function getName(
+    layerContainer: LayerContainer,
+    root: Root
+  ): string | undefined {
+    const res = root.layers.get(layerContainer.id)
+    if (res) {
+      return res.name
+    }
   }
 }
 
 export type Category = {
-  content: LayerContent
+  id: LayerId
   isInclude: boolean
-  elements: Element []
+  elements: LayerContainer []
 }
 export module Category {
-  export function isHidden(category: Category) {
-    return LayerContent.isHidden(category.content)
-  }
-
-  export function isHiddenElement(category: Category, idx: number) {
-    const el = category.elements[idx]
-    if (el) {
-      return LayerContent.isHidden(el.content)
+  export function getName(
+    category: Category,
+    root: Root
+  ): string | undefined {
+    const res = root.layers.get(category.id)
+    if (res) {
+      return res.name
     }
   }
 
-  export function toggleVisible(category: Category): Category {
-    return update(category, {
-      content: {
-        $set: LayerContent.toggleVisible(category.content)
-      }
-    })
+  export function isHiddenElement(category: Category, root: Root, idx: number) {
+    const el = category.elements[idx]
+    if (el) {
+      return LayerContainer.isHidden(el, root)
+    }
   }
 
-  export function toggleVisibleElement(category: Category, elementIdx: number): Category | undefined {
+  export function toggleVisibleElement(
+    category: Category,
+    root: Root,
+    elementIdx: number,
+  ): Root | undefined {
     const el = category.elements[elementIdx]
     if (el) {
+      const toggleVisibleCurrent = (): Root => {
+        const res = LayerContainer.toggleVisible(el, root)
+        if (res) {
+          return res
+        }
+        throw new Error(`Not found layer by "${el.id}" id`)
+      }
+
       if (category.isInclude) {
-        if (Element.isHidden(el)) {
-          return update(category, {
-            elements: {
-              $set: category.elements.map((element, index) => {
-                return Element.setHidden(element, index !== elementIdx)
-              })
-            }
-          })
-        } else {
-          return update(category, {
-            elements: {
-              [elementIdx]: {
-                $set: Element.toggleVisible(el)
+        if (LayerContainer.isHidden(el, root)) {
+          return ArrayExt.fold(
+            category.elements,
+            root,
+            ((root, element, index) => {
+              const res = LayerContainer.setVisible(element, root, index !== elementIdx)
+              if (res) {
+                return res
               }
-            }
-          })
+              throw new Error(`Not found layer by "${element.id}" id`)
+            })
+          )
+        } else {
+          return toggleVisibleCurrent()
         }
       } else {
-        return update(category, {
-          elements: {
-            [elementIdx]: {
-              $set: Element.toggleVisible(el)
-            }
-          }
-        })
+        return toggleVisibleCurrent()
       }
     }
   }
 }
 
-export type Layer =
-  | ["Element", Element]
+export type LayerOrCategory =
+  | ["Element", LayerContainer]
   | ["Category", Category]
-export module Layer {
-  export function mkElement(element: Element): Layer {
+export module LayerOrCategory {
+  export function mkElement(element: LayerContainer): LayerOrCategory {
     return ["Element", element]
   }
 
-  export function mkCategory(category: Category): Layer {
+  export function mkCategory(category: Category): LayerOrCategory {
     return ["Category", category]
   }
 }
 
-export type LayerList = Layer[]
-export module LayerList {
+export type LayersCatalog = LayerOrCategory[]
+export module LayersCatalog {
   export type Pos =
     | ["Element", number]
     /** `[categoryIdx, elementIdx]` */
@@ -164,29 +207,49 @@ export module LayerList {
     }
   }
 
-  export function toggleVisible(layers: LayerList, pos: Pos): LayerList | undefined {
+  export function toggleVisible(
+    layers: LayersCatalog,
+    root: Root,
+    pos: Pos,
+  ): Root | undefined {
     return Pos.map(
       pos,
       (categoryIdx, elementIdx) => {
         const layer = layers[categoryIdx]
         if (layer && layer[0] === "Category") {
-          const res = Category.toggleVisibleElement(layer[1], elementIdx)
+          const res = Category.toggleVisibleElement(layer[1], root, elementIdx)
           if (res) {
-            return update(layers, {
-              [categoryIdx]: { $set: Layer.mkCategory(res) }
-            })
+            return res
           }
         }
       },
       idx => {
         const layer = layers[idx]
         if (layer && layer[0] === "Element") {
-          const res = Element.toggleVisible(layer[1])
-          return update(layers, {
-            [idx]: { $set: Layer.mkElement(res) }
-          })
+          const res = LayerContainer.toggleVisible(layer[1], root)
+          if (res) {
+            return res
+          }
         }
       }
     )
+  }
+}
+
+export type LayersPosition = LayerId[]
+export module LayersPosition {
+  // todo
+  // export function moveAt(srcIndex: number, dstIndex: number): LayersPosition | undefined {
+  // }
+}
+
+export type Root = {
+  layers: Map<LayerId, Layer>
+  layersPosition: LayersPosition
+  layersCatalog: LayersCatalog
+}
+export module Root {
+  export function updateLayers(root: Root, updating: (layers: Map<LayerId, Layer>) => Map<LayerId, Layer>) {
+    return update(root, { layers: { $apply: updating } })
   }
 }

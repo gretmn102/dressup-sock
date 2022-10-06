@@ -26,4 +26,14 @@ export module ArrayExt {
       return [index, resultArray]
     }
   }
+
+  /** aka `reduce<U>(callbackfn: (previousValue: U, currentValue: never, currentIndex: number, array: never[]) => U, initialValue: U): U` */
+  export function fold<T, U>(arr: T[], state: U, folding: (state: U, element: T, index: number) => U): U {
+    let newState = state
+    for (let index = 0; index < arr.length; index++) {
+      const element = arr[index]
+      newState = folding(newState, element, index)
+    }
+    return newState
+  }
 }

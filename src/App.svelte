@@ -1,31 +1,30 @@
 <script lang="ts">
 	import { onMount } from "svelte"
 
-  import type { Deferrer, Result } from "./common"
+  import { type Deferrer, Result } from "./common"
   import * as Document from "./document"
-  import * as UniversalParser from "./utils/universalParser"
   import * as SvgImporter from "./SvgImporter"
 
   import UploadSock from "./UploadSock.svelte"
 
   let sockFetchResponse: Deferrer<Result<SVGElement, Error>> = ["HasNotStartedYet"] // @hmr:keep
 
-  let layers: UniversalParser.Result<Document.Layer[]> | undefined
+  let myDoc: Result<Document.Root, string> | undefined
 
-  function getLayers(): UniversalParser.Result<Document.Layer[]> | undefined {
+  function getLayers(): Result<Document.Root, string> | undefined {
     if (sockFetchResponse[0] === "Resolved" && sockFetchResponse[1][0] === "Ok") {
       const svg = sockFetchResponse[1][1]
       return SvgImporter.importSvg(svg as unknown as Document)
     }
   }
 
-  function layerToggleVisibleHandle(pos: Document.LayerList.Pos) {
-    if (layers) {
-      if (layers[0] === "Success") {
-        const [nextIndex, layerList] = layers[1]
-        const res = Document.LayerList.toggleVisible(layerList, pos)
+  function layerToggleVisibleHandle(pos: Document.LayersCatalog.Pos) {
+    if (myDoc) {
+      if (myDoc[0] === "Ok") {
+        const root = myDoc[1]
+        const res = Document.LayersCatalog.toggleVisible(root.layersCatalog, root, pos)
         if (res) {
-          layers = UniversalParser.Result.mkSuccess(nextIndex, res)
+          myDoc = Result.mkOk<Document.Root, string>(res)
         }
       }
     }
@@ -42,7 +41,7 @@
 
     sockFetchResponse = ["Resolved", ["Ok", svg]]
 
-    layers = getLayers()
+    myDoc = getLayers()
 
     // Wait to initialize the container
     let timer = setInterval(() => {
@@ -96,22 +95,22 @@
       <div class="container">
         <div class="container__character" bind:this={container} />
 
-        {#if layers}
+        {#if myDoc}
           <div class="container__buttons">
-            {#if layers[0] === "Success"}
-              {#each layers[1][1] as layer, firstIndex}
+            {#if myDoc[0] === "Ok"}
+              {#each myDoc[1].layersCatalog as layer, firstIndex}
                 {#if layer[0] === "Category"}
                   <div>
-                    <div>{layer[1].content.name}</div>
+                    <div>{Document.Category.getName(layer[1], myDoc[1])}</div>
                     {#each layer[1].elements as element, elementIndex}
                       <div>
                         <button
                           on:click={_ => {
-                            layerToggleVisibleHandle(Document.LayerList.Pos.mkCategory(firstIndex, elementIndex))
+                            layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategory(firstIndex, elementIndex))
                           }}
-                          style={Document.LayerContent.isHidden(element.content) ? "" : "color: red;"}
+                          style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
                         >
-                          {element.content.name}
+                          {Document.LayerContainer.getName(element, myDoc[1])}
                         </button>
                       </div>
                     {/each}
@@ -120,17 +119,17 @@
                   <div>
                     <button
                       on:click={_ => {
-                        layerToggleVisibleHandle(Document.LayerList.Pos.mkElement(firstIndex))
+                        layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkElement(firstIndex))
                       }}
-                      style={Document.LayerContent.isHidden(layer[1].content) ? "" : "color: red;"}
+                      style={Document.LayerContainer.isHidden(layer[1], myDoc[1]) ? "" : "color: red;"}
                     >
-                      {layer[1].content.name}
+                      {Document.LayerContainer.getName(layer[1], myDoc[1])}
                     </button>
                   </div>
                 {/if}
               {/each}
             {:else}
-              <pre style="color: red">{JSON.stringify(layers, undefined, 2)}</pre>
+              <pre style="color: red">{JSON.stringify(myDoc, undefined, 2)}</pre>
               <button on:click={fetchSock}>Try again</button>
             {/if}
           </div>

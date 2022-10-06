@@ -27,6 +27,39 @@ export module Result {
     }
   }
 
+  export function reduce<T, U>(
+    result: Result<T>,
+    successReduction: (v: [number, T]) => U,
+    errorReduction: () => U,
+    eofReduction: () => U,
+  ): U {
+    switch (result[0]) {
+      case "Success":
+        return successReduction(result[1])
+      case "Error":
+        return errorReduction()
+      case "Eof":
+        return eofReduction()
+    }
+  }
+
+  export function fold<T, U>(
+    result: Result<T>,
+    state: U,
+    successFolding: (state: U, v: [number, T]) => U,
+    errorFolding: (state: U) => U,
+    eofFolding: (state: U) => U,
+  ): U {
+    switch (result[0]) {
+      case "Success":
+        return successFolding(state, result[1])
+      case "Error":
+        return errorFolding(state)
+      case "Eof":
+        return eofFolding(state)
+    }
+  }
+
   export function getErrorOrEof<T, U>(result: Result<T>): Result<U> {
     switch (result[0]) {
       case "Error":
