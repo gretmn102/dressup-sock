@@ -36,4 +36,82 @@ export module ArrayExt {
     }
     return newState
   }
+
+  export function swap<T>(arr: T[], srcIndex: number, dstIndex: number): T[] {
+    if (!(0 <= srcIndex && srcIndex < arr.length)) {
+      throw new Error("The srcIndex was outside the range of elements in the list.")
+    }
+    if (!(0 <= dstIndex && dstIndex < arr.length)) {
+      throw new Error("The dstIndex was outside the range of elements in the list.")
+    }
+
+    if (srcIndex === dstIndex) {
+      return new Array(...arr)
+    }
+
+    const newArray = new Array(arr.length)
+
+    const apply = (srcIndex: number, dstIndex: number) => {
+      for (let i = 0; i < srcIndex; i++) {
+        newArray[i] = arr[i]
+      }
+      newArray[srcIndex] = arr[dstIndex]
+      for (let i = srcIndex + 1; i < dstIndex; i++) {
+        newArray[i] = arr[i]
+      }
+      newArray[dstIndex] = arr[srcIndex]
+      for (let i = dstIndex + 1; i < arr.length; i++) {
+        newArray[i] = arr[i]
+      }
+    }
+
+    if (srcIndex < dstIndex) {
+      apply(srcIndex, dstIndex)
+    } else {
+      apply(dstIndex, srcIndex)
+    }
+
+    return newArray
+  }
+
+  export function pickAndMove<T>(arr: T[], srcIndex: number, dstIndex: number): T[] {
+    if (!(0 <= srcIndex && srcIndex < arr.length)) {
+      throw new Error("The srcIndex was outside the range of elements in the list.")
+    }
+    if (!(0 <= dstIndex && dstIndex < arr.length)) {
+      throw new Error("The dstIndex was outside the range of elements in the list.")
+    }
+
+    if (srcIndex === dstIndex) {
+      return new Array(...arr)
+    }
+
+    const newArray = new Array(arr.length)
+
+    if (srcIndex < dstIndex) {
+      for (let i = 0; i < srcIndex; i++) {
+        newArray[i] = arr[i]
+      }
+      for (let i = srcIndex + 1; i <= dstIndex; i++) {
+        newArray[i - 1] = arr[i]
+      }
+      newArray[dstIndex] = arr[srcIndex]
+      for (let i = dstIndex + 1; i < arr.length; i++) {
+        newArray[i] = arr[i]
+      }
+    } else {
+      for (let i = 0; i < dstIndex; i++) {
+        newArray[i] = arr[i]
+      }
+      newArray[dstIndex] = arr[srcIndex]
+      for (let i = dstIndex; i < srcIndex; i++) {
+        newArray[i + 1] = arr[i]
+      }
+      for (let i = srcIndex + 1; i < arr.length; i++) {
+        newArray[i] = arr[i]
+      }
+    }
+
+    return newArray
+  }
 }

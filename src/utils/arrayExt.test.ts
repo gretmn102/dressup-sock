@@ -46,3 +46,59 @@ describe("ArrayExt.takeWhile", () => {
     expect(act).toStrictEqual(exp)
   })
 })
+
+describe("ArrayExt.pickAndMove", () => {
+  test("[0, 1, 2, 3, 4, 5], 1, 3", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3, 4, 5], 1, 3)
+    const exp = [0, 2, 3, 1, 4, 5]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 1, 3", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 1, 3)
+    const exp = [0, 2, 3, 1]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 1, 2", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 1, 2)
+    const exp = [0, 2, 1, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 0, 3", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 0, 3)
+    const exp = [1, 2, 3, 0]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3, 4, 5], 3, 1", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3, 4, 5], 3, 1)
+    const exp = [0, 3, 1, 2, 4, 5]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 2, 1", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 2, 1)
+    const exp = [0, 2, 1, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 2, 0", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 2, 0)
+    const exp = [2, 0, 1, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 3, 0", () => {
+    const act = ArrayExt.pickAndMove([0, 1, 2, 3], 3, 0)
+    const exp = [3, 0, 1, 2]
+    expect(act).toStrictEqual(exp)
+  })
+})
+
+describe("ArrayExt.swap", () => {
+  test("[0, 1, 2, 3], 1, 3", () => {
+    const act = ArrayExt.swap([0, 1, 2, 3], 1, 3)
+    const exp = [0, 3, 2, 1]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 2, 0", () => {
+    const act = ArrayExt.swap([0, 1, 2, 3], 2, 0)
+    const exp = [2, 1, 0, 3]
+    expect(act).toStrictEqual(exp)
+  })
+})
