@@ -1,5 +1,7 @@
 import update from "immutability-helper"
+
 import { ArrayExt } from "./utils/arrayExt"
+import NodeExt from "./utils/nodeExt"
 
 export type LayerId = string
 
@@ -238,9 +240,30 @@ export module LayersCatalog {
 
 export type LayersPosition = LayerId[]
 export module LayersPosition {
-  // todo
-  // export function moveAt(srcIndex: number, dstIndex: number): LayersPosition | undefined {
-  // }
+  export function pickAndMove(root: Root, rootSvg: SVGElement, srcIndex: number, dstIndex: number): Root {
+    const layersPosition = root.layersPosition
+    const newRoot = update(root, {
+      layersPosition: {
+        $set: ArrayExt.pickAndMove(layersPosition, srcIndex, dstIndex)
+      }
+    })
+
+    function getSvg(index: number): SVGGElement {
+      const layerId = layersPosition[index]
+      if (!layerId) {
+        throw new Error(`not found ${index} in root.layerPosition`)
+      }
+      const layer = root.layers.get(layerId)
+      if (!layer) {
+        throw new Error(`not found ${layerId} in root.layers`)
+      }
+      return layer.svg
+    }
+
+    NodeExt.pickAndMove(rootSvg, getSvg(srcIndex), getSvg(dstIndex))
+
+    return newRoot
+  }
 }
 
 export type Root = {

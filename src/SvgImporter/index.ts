@@ -86,7 +86,7 @@ export function importSvg(svg: Document): Result<Root, string> {
 
       return Result.mkOk({
         layers: dicLayers,
-        layersPosition: layers.map(([svg, _]) => svg.id),
+        layersPosition: layers.filter(([_, x]) => x.type[0] === "Element" ? x : undefined).map(([svg, _]) => svg.id),
         layersCatalog: layersCatalog,
       })
     },

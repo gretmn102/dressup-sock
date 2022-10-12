@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte"
 
-  import { type Deferrer, Result } from "./common"
+  import { type Deferrer, Result, Option } from "./common"
   import * as Document from "./document"
   import * as SvgImporter from "./SvgImporter"
 
@@ -71,6 +71,32 @@
       })
   }
 
+  type Page = "Categories" | "LayersPosition"
+
+  let page: Page = "Categories"
+
+  let layersPositionState: Option<number>
+
+  function changeLayerPositionHandler(index: number) {
+    layersPositionState = Option.reduce(
+      layersPositionState,
+      srcIndex => {
+        if (srcIndex === index) {
+          return Option.mkNone()
+        } else {
+          if (container) {
+            if (myDoc && myDoc[0] === "Ok") {
+              const svgRoot = container.getElementsByTagName("svg")[0]
+              myDoc = Result.mkOk<Document.Root, string>(Document.LayersPosition.pickAndMove(myDoc[1], svgRoot, srcIndex, index))
+            }
+          }
+          return Option.mkNone()
+        }
+      },
+      () => Option.mkSome(index)
+    )
+  }
+
 	onMount(() => {
     fetchSock()
 	})
@@ -98,36 +124,73 @@
         {#if myDoc}
           <div class="container__buttons">
             {#if myDoc[0] === "Ok"}
-              {#each myDoc[1].layersCatalog as layer, firstIndex}
-                {#if layer[0] === "Category"}
-                  <div>
-                    <div>{Document.Category.getName(layer[1], myDoc[1])}</div>
-                    {#each layer[1].elements as element, elementIndex}
+              <div>
+                <button
+                  disabled={page === "Categories"}
+                  on:click={() => {
+                    if (page !== "Categories") {
+                      page = "Categories"
+                    }
+                  }}
+                >
+                  Categories
+                </button>
+                <button
+                  disabled={page === "LayersPosition"}
+                  on:click={() => {
+                    if (page !== "LayersPosition") {
+                      page = "LayersPosition"
+                    }
+                  }}
+                >
+                  LayersPosition
+                </button>
+              </div>
+              <div class="buttons">
+                {#if page === "Categories"}
+                  {#each myDoc[1].layersCatalog as layer, firstIndex}
+                    {#if layer[0] === "Category"}
+                      <div>
+                        <div>{Document.Category.getName(layer[1], myDoc[1])}</div>
+                        {#each layer[1].elements as element, elementIndex}
+                          <div>
+                            <button
+                              on:click={_ => {
+                                layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategory(firstIndex, elementIndex))
+                              }}
+                              style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
+                            >
+                              {Document.LayerContainer.getName(element, myDoc[1])}
+                            </button>
+                          </div>
+                        {/each}
+                      </div>
+                    {:else if layer[0] === "Element"}
                       <div>
                         <button
                           on:click={_ => {
-                            layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategory(firstIndex, elementIndex))
+                            layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkElement(firstIndex))
                           }}
-                          style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
+                          style={Document.LayerContainer.isHidden(layer[1], myDoc[1]) ? "" : "color: red;"}
                         >
-                          {Document.LayerContainer.getName(element, myDoc[1])}
+                          {Document.LayerContainer.getName(layer[1], myDoc[1])}
                         </button>
                       </div>
-                    {/each}
-                  </div>
-                {:else if layer[0] === "Element"}
-                  <div>
-                    <button
-                      on:click={_ => {
-                        layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkElement(firstIndex))
-                      }}
-                      style={Document.LayerContainer.isHidden(layer[1], myDoc[1]) ? "" : "color: red;"}
-                    >
-                      {Document.LayerContainer.getName(layer[1], myDoc[1])}
-                    </button>
-                  </div>
+                    {/if}
+                  {/each}
+                {:else if page === "LayersPosition"}
+                  {#each myDoc[1].layersPosition as layer, index}
+                    <div>
+                      <button
+                        on:click={_ => void changeLayerPositionHandler(index)}
+                        style={layersPositionState === index ? "color: red;" : ""}
+                      >
+                        {index} {myDoc[1].layers.get(layer)?.name}
+                      </button>
+                    </div>
+                  {/each}
                 {/if}
-              {/each}
+              </div>
             {:else}
               <pre style="color: red">{JSON.stringify(myDoc, undefined, 2)}</pre>
               <button on:click={fetchSock}>Try again</button>
@@ -163,6 +226,11 @@
   }
 
   .container__buttons {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .buttons {
     overflow-y: auto;
   }
 </style>
