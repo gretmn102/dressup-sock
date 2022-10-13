@@ -114,4 +114,37 @@ export module ArrayExt {
 
     return newArray
   }
+
+  export function insert<T>(arr: T[], item: T, at: number): T[] {
+    if (!(0 <= at && at < arr.length)) {
+      throw new Error("The srcIndex was outside the range of elements in the list.")
+    }
+
+    const newArray = new Array<T>(arr.length + 1)
+    for (let index = 0; index < at; index++) {
+      newArray[index] = arr[index]
+    }
+    newArray[at] = item
+    for (let index = at; index < arr.length; index++) {
+      newArray[index + 1] = arr[index]
+    }
+
+    return newArray
+  }
+
+  export function remove<T>(arr: T[], at: number): T[] {
+    if (!(0 <= at && at < arr.length)) {
+      throw new Error("The srcIndex was outside the range of elements in the list.")
+    }
+
+    const newArray = new Array<T>(arr.length - 1)
+    for (let index = 0; index < at; index++) {
+      newArray[index] = arr[index]
+    }
+    for (let index = at + 1; index < arr.length; index++) {
+      newArray[index - 1] = arr[index]
+    }
+
+    return newArray
+  }
 }

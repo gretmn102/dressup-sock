@@ -102,3 +102,39 @@ describe("ArrayExt.swap", () => {
     expect(act).toStrictEqual(exp)
   })
 })
+
+describe("ArrayExt.insert", () => {
+  test("[0, 1, 2, 3], -1, 0", () => {
+    const act = ArrayExt.insert([0, 1, 2, 3], -1, 0)
+    const exp = [-1, 0, 1, 2, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], -1, 3", () => {
+    const act = ArrayExt.insert([0, 1, 2, 3], -1, 3)
+    const exp = [0, 1, 2, -1, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], -1, 2", () => {
+    const act = ArrayExt.insert([0, 1, 2, 3], -1, 2)
+    const exp = [0, 1, -1, 2, 3]
+    expect(act).toStrictEqual(exp)
+  })
+})
+
+describe("ArrayExt.remove", () => {
+  test("[0, 1, 2, 3], 0", () => {
+    const act = ArrayExt.remove([0, 1, 2, 3], 0)
+    const exp = [1, 2, 3]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 3", () => {
+    const act = ArrayExt.remove([0, 1, 2, 3], 3)
+    const exp = [0, 1, 2]
+    expect(act).toStrictEqual(exp)
+  })
+  test("[0, 1, 2, 3], 2", () => {
+    const act = ArrayExt.remove([0, 1, 2, 3], 2)
+    const exp = [0, 1, 3]
+    expect(act).toStrictEqual(exp)
+  })
+})
