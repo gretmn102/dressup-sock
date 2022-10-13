@@ -1,10 +1,10 @@
 import * as P from "parsimmon"
 
-import type { Option } from "../common"
+import { Option } from "../common"
 
 module Utils {
   export function opt<T>(p: P.Parser<T>): P.Parser<Option<T>> {
-    return P.alt(p, P.succeed(null))
+    return P.alt(p, P.succeed(Option.mkNone()))
   }
 
   /** `many1Satisfy` from FParsec */
@@ -17,8 +17,12 @@ module Utils {
   }
 }
 
+export type Type =
+  | ["Element"]
+  | ["Category", { isInclude: boolean }]
+
 export type Layer = {
-  type: ["Element"] | ["Category", { isInclude: boolean }]
+  type: Type
   name: string
 }
 
@@ -30,7 +34,7 @@ export const deserialize = (() => {
   const pcategory =
     pgt
       .then(Utils.opt(pplus))
-      .map(plus => ({ isInclude: plus !== null }))
+      .map(plus => ({ isInclude: Option.isSome(plus) }))
 
   const pname =
     P.alt(
@@ -49,7 +53,11 @@ export const deserialize = (() => {
           pname,
           ((category, name) => {
             const x: Layer = {
-              type: category === null ? ["Element"] : ["Category", category ],
+              type: Option.reduce<{isInclude: boolean}, Type>(
+                category,
+                category => ["Category", category],
+                () => ["Element"]
+              ),
               name
             }
 

@@ -29,7 +29,8 @@
   "dependencies": {
     "immutability-helper": "^3.1.1",
     "parsimmon": "^1.18.1",
-    "sirv-cli": "^2.0.2"
+    "sirv-cli": "^2.0.2",
+    "svelte-awesome": "^3.0.0"
   },
   "scripts": {
     "build": "rollup -c",
@@ -39,6 +40,7 @@
     "dev": "npm run dev:nollup",
     "start": "sirv public",
     "deploy": "rollup -c & gh-pages -d public",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch"
   }
 }

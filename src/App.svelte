@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { onMount } from "svelte"
+  import Icon from "svelte-awesome"
+  import { eye } from "svelte-awesome/icons"
 
-  import { type Deferrer, Result, Option } from "./common"
+  import { type Deferrer, Result, Option, Page, LayersPositionPage, Choice, Pair, CategoriesPage } from "./common"
   import * as Document from "./document"
   import * as SvgImporter from "./SvgImporter"
 
@@ -71,30 +73,47 @@
       })
   }
 
-  type Page = "Categories" | "LayersPosition"
+  let page: Page = Page.mkCategoriesEmpty()
 
-  let page: Page = "Categories"
-
-  let layersPositionState: Option<number>
-
-  function changeLayerPositionHandler(index: number) {
-    layersPositionState = Option.reduce(
-      layersPositionState,
-      srcIndex => {
-        if (srcIndex === index) {
-          return Option.mkNone()
-        } else {
-          if (container) {
-            if (myDoc && myDoc[0] === "Ok") {
-              const svgRoot = container.getElementsByTagName("svg")[0]
-              myDoc = Result.mkOk<Document.Root, string>(Document.LayersPosition.pickAndMove(myDoc[1], svgRoot, srcIndex, index))
+  function changeLayersPositionHandler(index: number) {
+    if (page[0] === "LayersPosition") {
+      if (container && myDoc && myDoc[0] === "Ok") {
+        Pair.reduce(
+          LayersPositionPage.changeLayerPosition(
+            page[1],
+            myDoc[1],
+            container.firstChild as SVGElement,
+            index
+          ),
+          (layersPositionPage, root) => {
+            page = Page.mkLayersPosition(layersPositionPage)
+            if (root) {
+              myDoc = Result.mkOk<Document.Root, string>(root)
             }
           }
-          return Option.mkNone()
-        }
-      },
-      () => Option.mkSome(index)
-    )
+        )
+      }
+    }
+  }
+
+  function changeCatalogPositionHandler(pos: Document.LayersCatalog.Pos) {
+    if (page[0] === "Categories") {
+      if (container && myDoc && myDoc[0] === "Ok") {
+        Pair.reduce(
+          CategoriesPage.changePosition(
+            page[1],
+            myDoc[1],
+            pos
+          ),
+          (categoriesPage, root) => {
+            page = Page.mkCategories(categoriesPage)
+            if (root) {
+              myDoc = Result.mkOk<Document.Root, string>(root)
+            }
+          }
+        )
+      }
+    }
   }
 
 	onMount(() => {
@@ -126,20 +145,20 @@
             {#if myDoc[0] === "Ok"}
               <div>
                 <button
-                  disabled={page === "Categories"}
+                  disabled={page[0] === "Categories"}
                   on:click={() => {
-                    if (page !== "Categories") {
-                      page = "Categories"
+                    if (page[0] !== "Categories") {
+                      page = Page.mkCategoriesEmpty()
                     }
                   }}
                 >
                   Categories
                 </button>
                 <button
-                  disabled={page === "LayersPosition"}
+                  disabled={page[0] === "LayersPosition"}
                   on:click={() => {
-                    if (page !== "LayersPosition") {
-                      page = "LayersPosition"
+                    if (page[0] !== "LayersPosition") {
+                      page = Page.mkLayersPositionEmpty()
                     }
                   }}
                 >
@@ -147,43 +166,59 @@
                 </button>
               </div>
               <div class="buttons">
-                {#if page === "Categories"}
+                {#if page[0] === "Categories"}
                   {#each myDoc[1].layersCatalog as layer, firstIndex}
                     {#if layer[0] === "Category"}
-                      <div>
+                      <div class="row">
                         <div>{Document.Category.getName(layer[1], myDoc[1])}</div>
                         {#each layer[1].elements as element, elementIndex}
                           <div>
                             <button
                               on:click={_ => {
-                                layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategory(firstIndex, elementIndex))
+                                changeCatalogPositionHandler(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
+                              }}
+                              style={CategoriesPage.isSelected(page[1], Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex)) ? "color: red;" : ""}
+                            >
+                              {Document.LayerContainer.getName(element, myDoc[1])}
+                            </button>
+                            <button
+                              on:click={_ => {
+                                layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
                               }}
                               style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
                             >
-                              {Document.LayerContainer.getName(element, myDoc[1])}
+                              <Icon data={eye} />
                             </button>
                           </div>
                         {/each}
                       </div>
                     {:else if layer[0] === "Element"}
-                      <div>
+                      <div class="row">
+                        <button
+                          on:click={_ => {
+                            changeCatalogPositionHandler(Document.LayersCatalog.Pos.mkElement(firstIndex))
+                          }}
+                          style={CategoriesPage.isSelected(page[1], Document.LayersCatalog.Pos.mkElement(firstIndex)) ? "color: red;" : ""}
+                        >
+                          {Document.LayerContainer.getName(layer[1], myDoc[1])}
+                        </button>
                         <button
                           on:click={_ => {
                             layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkElement(firstIndex))
                           }}
                           style={Document.LayerContainer.isHidden(layer[1], myDoc[1]) ? "" : "color: red;"}
                         >
-                          {Document.LayerContainer.getName(layer[1], myDoc[1])}
+                          <Icon data={eye} />
                         </button>
                       </div>
                     {/if}
                   {/each}
-                {:else if page === "LayersPosition"}
+                {:else if page[0] === "LayersPosition"}
                   {#each myDoc[1].layersPosition as layer, index}
-                    <div>
+                    <div class="row">
                       <button
-                        on:click={_ => void changeLayerPositionHandler(index)}
-                        style={layersPositionState === index ? "color: red;" : ""}
+                        on:click={_ => void changeLayersPositionHandler(index)}
+                        style={LayersPositionPage.isSelected(page[1], index) ? "color: red;" : ""}
                       >
                         {index} {myDoc[1].layers.get(layer)?.name}
                       </button>
@@ -232,5 +267,10 @@
 
   .buttons {
     overflow-y: auto;
+    overflow-x: auto;
+  }
+
+  .row {
+    width: max-content;
   }
 </style>

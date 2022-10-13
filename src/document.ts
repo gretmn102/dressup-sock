@@ -160,6 +160,44 @@ export module Category {
       }
     }
   }
+
+  export function pickAndMoveElement(
+    category: Category,
+    srcIndex: number,
+    dstIndex: number,
+  ): Category {
+    return update(category, {
+      elements: {
+        $apply: (elements: LayerContainer[]) => ArrayExt.pickAndMove(elements, srcIndex, dstIndex)
+      }
+    })
+  }
+
+  export function insertElement(
+    category: Category,
+    element: LayerContainer,
+    index: number
+  ): Category {
+    return update(category, {
+      elements: {
+        $apply: (elements: LayerContainer[]) =>
+          index < elements.length - 1 ?
+            ArrayExt.insertBefore(elements, element, index)
+          : ArrayExt.insertAfter(elements, element, index)
+      }
+    })
+  }
+
+  export function removeElement(
+    category: Category,
+    index: number,
+  ): Category {
+    return update(category, {
+      elements: {
+        $apply: (elements: LayerContainer[]) => ArrayExt.remove(elements, index)
+      }
+    })
+  }
 }
 
 export type LayerOrCategory =
@@ -179,33 +217,75 @@ export type LayersCatalog = LayerOrCategory[]
 export module LayersCatalog {
   export type Pos =
     | ["Element", number]
+    | ["Category", number]
     /** `[categoryIdx, elementIdx]` */
-    | ["Category", [number, number]]
+    | ["CategoryElement", [number, number]]
   export module Pos {
     export function mkElement(index: number): Pos {
       return ["Element", index]
     }
 
-    export function mkCategory(categoryIndex: number, elementIndex: number): Pos {
-      return ["Category", [categoryIndex, elementIndex]]
+    export function mkCategory(categoryIndex: number): Pos {
+      return ["Category", categoryIndex]
+    }
+
+    export function mkCategoryElement(categoryIndex: number, elementIndex: number): Pos {
+      return ["CategoryElement", [categoryIndex, elementIndex]]
+    }
+
+    export function isElementOrCategory(pos: Pos) {
+      return pos[0] === "Category" || pos[0] === "Element"
+    }
+
+    export function getElementOrCategory(pos: Pos) {
+      if (pos[0] === "Category" || pos[0] === "Element") {
+        return pos[1]
+      }
+      throw new Error(`expected Category or Element but ${pos[0]}`)
+    }
+
+    export function getCategoryElement(pos: Pos) {
+      if (pos[0] === "CategoryElement") {
+        return pos[1]
+      }
+      throw new Error(`expected Category but ${pos[0]}`)
     }
 
     export function map<T>(
       pos: Pos,
-      mappingCategory: (categoryIdx: number, elementIdx: number) => T,
       mappingElement: (idx: number) => T,
+      mappingCategory: (categoryIdx: number) => T,
+      mappingCategoryElement: (categoryIdx: number, elementIdx: number) => T,
     ): T {
       switch (pos[0]) {
-        case "Category": {
+        case "CategoryElement": {
           const [categoryIdx, elementIdx] = pos[1]
-          return mappingCategory(categoryIdx, elementIdx)
+          return mappingCategoryElement(categoryIdx, elementIdx)
         }
 
         case "Element": {
           const idx = pos[1]
           return mappingElement(idx)
         }
+
+        case "Category": {
+          const idx = pos[1]
+          return mappingCategory(idx)
+        }
       }
+    }
+
+    export function isEqual(pos1: Pos, pos2: Pos): boolean {
+      if (pos1[0] === "Element" && pos2[0] === "Element") {
+        return pos1[1] === pos2[1]
+      } else if (pos1[0] === "Category" && pos2[0] === "Category") {
+        return pos1[1] === pos2[1]
+      } else if (pos1[0] === "CategoryElement" && pos2[0] === "CategoryElement") {
+        const [pos1Category, pos1Element] = pos1[1]
+        const [pos2Category, pos2Element] = pos2[1]
+        return pos1Category === pos2Category && pos1Element === pos2Element
+      }
+      return false
     }
   }
 
@@ -216,6 +296,18 @@ export module LayersCatalog {
   ): Root | undefined {
     return Pos.map(
       pos,
+      idx => {
+        const layer = layers[idx]
+        if (layer && layer[0] === "Element") {
+          const res = LayerContainer.toggleVisible(layer[1], root)
+          if (res) {
+            return res
+          }
+        }
+      },
+      categoryIdx => {
+        throw new Error("the visibility of the category cannot be changed")
+      },
       (categoryIdx, elementIdx) => {
         const layer = layers[categoryIdx]
         if (layer && layer[0] === "Category") {
@@ -225,16 +317,73 @@ export module LayersCatalog {
           }
         }
       },
-      idx => {
-        const layer = layers[idx]
-        if (layer && layer[0] === "Element") {
-          const res = LayerContainer.toggleVisible(layer[1], root)
-          if (res) {
-            return res
-          }
-        }
-      }
     )
+  }
+
+  export function getCategory(layersCatalog: LayersCatalog, index: number) {
+    const res = layersCatalog[index]
+    if (res[0] === "Category") {
+      return res[1]
+    }
+    throw new Error(`expected Category but ${res[0]}`)
+  }
+
+  export function pickAndMove(
+    root: Root,
+    srcPos: Pos,
+    dstPos: Pos,
+  ): Root {
+    if (Pos.isElementOrCategory(srcPos) && Pos.isElementOrCategory(dstPos)) {
+      const srcIndex = Pos.getElementOrCategory(srcPos)
+      const dstIndex = Pos.getElementOrCategory(dstPos)
+
+      return update(root, {
+        layersCatalog: {
+          $apply: (layersCatalog: LayersCatalog) => ArrayExt.pickAndMove(layersCatalog, srcIndex, dstIndex)
+        }
+      })
+    } else {
+      const [srcCategoryIndex, srcElementIndex] = Pos.getCategoryElement(srcPos)
+      const [dstCategoryIndex, dstElementIndex] = Pos.getCategoryElement(dstPos)
+      if (srcCategoryIndex === dstCategoryIndex) {
+        return update(root, {
+          layersCatalog: {
+            $apply: (layersCatalog: LayersCatalog) => {
+              const srcCategory = getCategory(layersCatalog, srcCategoryIndex)
+              return update(layersCatalog, {
+                [srcCategoryIndex]: {
+                  $set: LayerOrCategory.mkCategory(
+                    Category.pickAndMoveElement(srcCategory, srcElementIndex, dstElementIndex)
+                  )
+                }
+              })
+            }
+          }
+        })
+      } else {
+        return update(root, {
+          layersCatalog: {
+            $apply: (layersCatalog: LayersCatalog) => {
+              const srcCategory = getCategory(layersCatalog, srcCategoryIndex)
+              const dstCategory = getCategory(layersCatalog, dstCategoryIndex)
+              const srcElement = srcCategory.elements[srcElementIndex]
+              return update(layersCatalog, {
+                [srcCategoryIndex]: {
+                  $set: LayerOrCategory.mkCategory(
+                    Category.removeElement(srcCategory, srcElementIndex)
+                  )
+                },
+                [dstCategoryIndex]: {
+                  $set: LayerOrCategory.mkCategory(
+                    Category.insertElement(dstCategory, srcElement, dstElementIndex)
+                  )
+                },
+              })
+            }
+          }
+        })
+      }
+    }
   }
 }
 
