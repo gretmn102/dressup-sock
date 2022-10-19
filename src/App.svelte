@@ -170,27 +170,38 @@
                   {#each myDoc[1].layersCatalog as layer, firstIndex}
                     {#if layer[0] === "Category"}
                       <div class="row">
-                        <div>{Document.Category.getName(layer[1], myDoc[1])}</div>
-                        {#each layer[1].elements as element, elementIndex}
-                          <div>
-                            <button
-                              on:click={_ => {
-                                changeCatalogPositionHandler(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
-                              }}
-                              style={CategoriesPage.isSelected(page[1], Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex)) ? "color: red;" : ""}
-                            >
-                              {Document.LayerContainer.getName(element, myDoc[1])}
-                            </button>
-                            <button
-                              on:click={_ => {
-                                layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
-                              }}
-                              style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
-                            >
-                              <Icon data={eye} />
-                            </button>
-                          </div>
-                        {/each}
+                        <div class="category__header">
+                          <button
+                            on:click={_ => {
+                              changeCatalogPositionHandler(Document.LayersCatalog.Pos.mkCategory(firstIndex))
+                            }}
+                            style={CategoriesPage.isSelected(page[1], Document.LayersCatalog.Pos.mkCategory(firstIndex)) ? "color: red;" : ""}
+                          >
+                          {Document.Category.getName(layer[1], myDoc[1])}
+                          </button>
+                        </div>
+                        <div class="category__body">
+                          {#each layer[1].elements as element, elementIndex}
+                            <div>
+                              <button
+                                on:click={_ => {
+                                  changeCatalogPositionHandler(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
+                                }}
+                                style={CategoriesPage.isSelected(page[1], Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex)) ? "color: red;" : ""}
+                              >
+                                {Document.LayerContainer.getName(element, myDoc[1])}
+                              </button>
+                              <button
+                                on:click={_ => {
+                                  layerToggleVisibleHandle(Document.LayersCatalog.Pos.mkCategoryElement(firstIndex, elementIndex))
+                                }}
+                                style={Document.LayerContainer.isHidden(element, myDoc[1]) ? "" : "color: red;"}
+                              >
+                                <Icon data={eye} />
+                              </button>
+                            </div>
+                          {/each}
+                        </div>
                       </div>
                     {:else if layer[0] === "Element"}
                       <div class="row">
@@ -272,5 +283,13 @@
 
   .row {
     width: max-content;
+  }
+
+  .category__header {
+
+  }
+
+  .category__body {
+    margin-left: 10px;
   }
 </style>
