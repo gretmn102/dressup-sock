@@ -1,6 +1,5 @@
 import * as P from "parsimmon"
-
-import { Option } from "../common"
+import { Option } from "@fering-org/functional-helper"
 
 module Utils {
   export function opt<T>(p: P.Parser<T>): P.Parser<Option<T>> {

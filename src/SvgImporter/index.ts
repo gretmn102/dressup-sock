@@ -1,7 +1,8 @@
+import { Result } from "@fering-org/functional-helper"
+
 import * as IdSerializator from "./idSerializator"
 import * as UniversalParser from "../utils/universalParser"
 import { LayerContainer, Category, LayersCatalog, LayerOrCategory, type Root, type LayerId, Layer } from "../document"
-import { Result } from "../common"
 
 type Token = [SVGGElement, IdSerializator.Layer]
 type Parser<T> = UniversalParser.Parser<Token, T>

@@ -2,8 +2,9 @@
 	import { onMount } from "svelte"
   import Icon from "svelte-awesome"
   import { eye } from "svelte-awesome/icons"
+  import { Option, Pair, Choice, Result } from "@fering-org/functional-helper"
 
-  import { type Deferrer, Result, Option, Page, LayersPositionPage, Choice, Pair, CategoriesPage } from "./common"
+  import { type Deferrer, Page, LayersPositionPage, CategoriesPage } from "./common"
   import * as Document from "./document"
   import * as SvgImporter from "./SvgImporter"
 

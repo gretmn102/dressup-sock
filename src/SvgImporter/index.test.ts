@@ -1,9 +1,9 @@
 import {describe, expect, test} from '@jest/globals'
 import { JSDOM } from "jsdom"
+import { Result } from "@fering-org/functional-helper"
 
 import type * as Document from "../document"
 import * as SvgImporter from "."
-import { Result } from '../common'
 
 export type Layer = {
   id: string
