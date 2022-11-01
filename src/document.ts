@@ -1,6 +1,6 @@
 import update from "immutability-helper"
+import { ArrayExt } from "@fering-org/functional-helper"
 
-import { ArrayExt } from "./utils/arrayExt"
 import NodeExt from "./utils/nodeExt"
 
 export type LayerId = string
